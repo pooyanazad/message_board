@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block content %}
+<h2>Welcome, {{ username }}</h2>
+<h3>Write a Message:</h3>
+<form action="/message_board" method="POST">
+    <input type="text" name="message" required>
+    <input type="submit" value="Post Message">
+</form>
+<br>
+<h3>Your Messages:</h3>
+{% if messages %}
+    {% for message in messages %}
+        <div>{{ message }}</div>
+    {% endfor %}
+{% else %}
+    <div>No messages yet.</div>
+{% endif %}
+<br>
+<form action="/clear" method="POST">
+    <input type="submit" value="Clear Messages">
+</form>
+<br>
+<a href="/logout">Logout</a>
+{% endblock %}
+
