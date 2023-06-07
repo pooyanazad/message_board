@@ -5,10 +5,12 @@ import string
 
 app = Flask(__name__)
 users_folder = 'users_data'
+admin_username = 'admin'
+admin_password = '123999'
 
 # Specify the paths to the SSL certificate and private key files
-ssl_cert_path ='/root/messageBoard/certificate.crt'
-ssl_key_path ='/root/messageBoard/private.key'
+ssl_cert_path = '/root/messageBoard/certificate.crt'
+ssl_key_path = '/root/messageBoard/private.key'
 
 if not os.path.exists(users_folder):
     os.makedirs(users_folder)
@@ -57,7 +59,10 @@ def login():
         username = request.form['username']
         password = request.form['password']
 
-        if is_valid_credentials(username, password):
+        if username == admin_username and password == admin_password:
+            session['username'] = username
+            return redirect('/admin')
+        elif is_valid_credentials(username, password):
             session['username'] = username
             return redirect('/message_board')
         else:
@@ -66,9 +71,28 @@ def login():
     return render_template('login.html')
 
 
+@app.route('/admin', methods=['GET', 'POST'])
+def admin():
+    if 'username' in session and session['username'] == admin_username:
+        if request.method == 'POST':
+            action = request.form['action']
+            if action == 'change_password':
+                username = request.form['username']
+                new_password = request.form['new_password']
+                change_user_password(username, new_password)
+            elif action == 'delete_user':
+                username = request.form['username']
+                delete_user(username)
+
+        users = get_registered_users()
+        return render_template('admin.html', users=users, admin_username=admin_username)
+
+    return redirect('/login')
+
+
 @app.route('/message_board', methods=['GET', 'POST'])
 def message_board():
-    if 'username' in session:
+    if 'username' in session and session['username'] != admin_username:
         username = session['username']
         password_file = get_password_file(username)
         messages_file = get_messages_file(username)
@@ -86,7 +110,7 @@ def message_board():
 
 @app.route('/clear', methods=['POST'])
 def clear():
-    if 'username' in session:
+    if 'username' in session and session['username'] != admin_username:
         username = session['username']
         messages_file = get_messages_file(username)
         with open(messages_file, 'w') as file:
@@ -126,6 +150,22 @@ def is_valid_credentials(username, password):
     return False
 
 
+def change_user_password(username, new_password):
+    password_file = get_password_file(username)
+    with open(password_file, 'w') as file:
+        file.write(new_password)
+
+
+def delete_user(username):
+    password_file = get_password_file(username)
+    messages_file = get_messages_file(username)
+
+    if os.path.exists(password_file):
+        os.remove(password_file)
+    if os.path.exists(messages_file):
+        os.remove(messages_file)
+
+
 def get_password_file(username):
     return os.path.join(users_folder, f'{username}_password.txt')
 
@@ -143,7 +183,16 @@ def get_user_messages(username):
     return []
 
 
-if __name__ == '__main__':
-    #app.run(debug=True, host='0.0.0.0', port=80)
-    app.run(debug=True, host='0.0.0.0', port=443, ssl_context=(ssl_cert_path, ssl_key_path))
+def get_registered_users():
+    users = []
+    for file_name in os.listdir(users_folder):
+        if file_name.endswith('_password.txt'):
+            username = file_name.split('_')[0]
+            users.append(username)
+    return users
 
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=443, ssl_context=(ssl_cert_path, ssl_key_path))
+#for container and remove ssl error
+#    app.run(debug=True, host='0.0.0.0', port=443)
