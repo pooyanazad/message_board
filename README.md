@@ -3,10 +3,8 @@
 Fallow these steps to begin.<br />
 <br />
 sudo apt update<br />
-sudo apt install git<br />
-sudo apt install python3<br />
+sudo apt install git python3 python3-pip<br />
 python3 --version<br />
-sudo apt install python3-pip<br />
 sudo pip3 install flask<br />
 <br />
 than:<br />
